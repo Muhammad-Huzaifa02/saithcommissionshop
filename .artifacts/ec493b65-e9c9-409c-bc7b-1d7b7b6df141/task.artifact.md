@@ -1,0 +1,3 @@
+- [x] Update `WeatherProvider` to auto-fetch on init
+- [x] Add weather fetch and widget to `AdminHomePage`
+- [x] Add weather fetch and widget to `CustomerHomePage`

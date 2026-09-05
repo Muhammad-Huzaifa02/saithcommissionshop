@@ -1,0 +1,17 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "saith-commission-shop-bda45",
+          "appId": "1:252739546969:android:1cb87c4252a61dc86f2648",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

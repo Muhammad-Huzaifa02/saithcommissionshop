@@ -1,0 +1,56 @@
+{
+  "indexes": [
+    { "collectionGroup": "products", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "name", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "customers", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "suppliers", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "name", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "invoices", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "invoices", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "isPaid", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "invoices", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "customerId", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "purchases", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "date", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "stock_history", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "productId", "order": "ASCENDING" },
+      { "fieldPath": "date", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "customer_ledger_entries", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "customerId", "order": "ASCENDING" },
+      { "fieldPath": "date", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "supplier_ledger_entries", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "supplierId", "order": "ASCENDING" },
+      { "fieldPath": "date", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "audit_logs", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "shopId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "shop_members", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "uid", "order": "ASCENDING" },
+      { "fieldPath": "status", "order": "ASCENDING" }
+    ]}
+  ],
+  "fieldOverrides": []
+}

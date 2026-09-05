@@ -1,0 +1,6 @@
+- [/] Reverting to Premium Light 3D UI
+    - [ ] Update `app_theme.dart` with light colors and shadows
+    - [ ] Refactor `customer_home_page.dart` (remove search/profile, fix colors)
+    - [ ] Refactor `admin_home_page.dart` (remove search/status, fix colors)
+    - [ ] Clean up `unified_login_page.dart`
+    - [ ] Fix unused import warnings

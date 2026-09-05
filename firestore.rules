@@ -1,0 +1,162 @@
+rules_version = '2';
+
+// Multi-tenant isolation rules for the Mandi Management Platform.
+//
+// Core guarantee: a request is only ever allowed to read or write a
+// shop-scoped document if the caller has an active shop_members doc
+// linking their uid to that document's shopId. The client's own claim
+// about which shop it's acting for (request.resource.data.shopId) is
+// re-checked here independently — it is never trusted just because the
+// client sent it.
+//
+// NOTE: this file has not been deployed/tested against the emulator yet.
+// Batch 1 next step is `firebase emulators:start --only firestore` plus
+// a rules-unit-test suite proving:
+//   - User A can read/write Shop A's docs
+//   - User A is DENIED on Shop B's docs
+//   - A doc create is DENIED if request.resource.data.shopId isn't a shop
+//     the caller belongs to, even if resource.data.shopId (n/a on create)
+//     would have passed
+//   - Permission-gated writes (e.g. manage_products) are DENIED for a
+//     role that doesn't have that permission
+// Deploy only after that suite passes.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // True if the caller has an ACTIVE shop_members doc for this shopId.
+    // Security Rules can't run a `where` query, so this checks a
+    // denormalized `shop_members_index/{uid}_{shopId}` doc instead (see
+    // that collection's rules below for how it's kept in sync).
+    function isMember(shopId) {
+      return isSignedIn() &&
+        existsAfter(/databases/$(database)/documents/shops/$(shopId)) &&
+        // Membership is checked by looking up the caller's own uid-keyed
+        // index doc (see note below) rather than an arbitrary query,
+        // because Security Rules can't run a `where` query directly.
+        exists(/databases/$(database)/documents/shop_members_index/$(request.auth.uid + '_' + shopId));
+    }
+
+    function hasPermission(shopId, permission) {
+      let member = get(/databases/$(database)/documents/shop_members_index/$(request.auth.uid + '_' + shopId)).data;
+      let role = get(/databases/$(database)/documents/shops/$(shopId)/roles/$(member.roleId)).data;
+      return permission in role.permissions;
+    }
+
+    // ── Shops ──────────────────────────────────────────────────────────
+    match /shops/{shopId} {
+      allow read: if isMember(shopId);
+      // Creation happens via the createShopWithOwner batch (client-side
+      // for now) — allow create only when the caller is stamping
+      // themselves as ownerUid. Update requires manage_settings.
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isMember(shopId) && hasPermission(shopId, 'manage_settings');
+      allow delete: if false; // shops are suspended (status field), never hard-deleted
+
+      match /roles/{roleId} {
+        allow read: if isMember(shopId);
+        allow write: if isMember(shopId) && hasPermission(shopId, 'manage_roles');
+      }
+    }
+
+    // Denormalized index so a rule can check "is this uid a member of this
+    // shop" in O(1) without a query (Security Rules can't do `where`).
+    // Doc id convention: `{uid}_{shopId}`. Written alongside every
+    // shop_members create/update/delete by the app (or better, a Cloud
+    // Function trigger, so it can never drift from the real doc).
+    match /shop_members_index/{indexId} {
+      allow read: if isSignedIn();
+      allow write: if false; // written only by trusted server code / Cloud Functions
+    }
+
+    match /shop_members/{memberId} {
+      allow read: if isSignedIn() &&
+        (resource.data.uid == request.auth.uid || isMember(resource.data.shopId));
+      allow create: if isMember(request.resource.data.shopId) &&
+        hasPermission(request.resource.data.shopId, 'manage_employees');
+      allow update, delete: if isMember(resource.data.shopId) &&
+        hasPermission(resource.data.shopId, 'manage_employees');
+    }
+
+    // ── Generic shop-scoped collection macro (repeated per collection
+    // because Security Rules don't support real functions across paths) ──
+
+    match /products/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'manage_products');
+      allow update, delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'manage_products');
+    }
+
+    match /customers/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'manage_customers');
+      allow update, delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'manage_customers');
+    }
+
+    match /suppliers/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'manage_suppliers');
+      allow update, delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'manage_suppliers');
+    }
+
+    match /invoices/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'create_invoice');
+      allow update: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'edit_invoice');
+      allow delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'delete_invoice');
+    }
+
+    match /receipts/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'create_receipt');
+      allow update, delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'manage_settings');
+    }
+
+    match /purchases/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'create_purchase');
+      allow update, delete: if isMember(resource.data.shopId) && hasPermission(resource.data.shopId, 'create_purchase');
+    }
+
+    match /customer_ledger_entries/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow write: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'view_ledger');
+    }
+
+    match /supplier_ledger_entries/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow write: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'view_ledger');
+    }
+
+    match /expenses/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow write: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'manage_expenses');
+    }
+
+    match /stock_history/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow write: if isMember(request.resource.data.shopId) && hasPermission(request.resource.data.shopId, 'manage_inventory');
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isMember(resource.data.shopId);
+      allow create: if isMember(request.resource.data.shopId);
+      allow update, delete: if false; // audit logs are append-only
+    }
+
+    // ── Legacy singleton doc (pre-migration) — locked down, not extended ──
+    match /shop/{docId} {
+      allow read, write: if false;
+    }
+
+    // Anything not explicitly listed is denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# 1. Generate a release keystore (do this ONCE, keep it forever — losing it means
+#    you can never publish an update to the same Play Store listing again):
+#
+#    keytool -genkey -v -keystore ~/saith-release-key.jks -keyalg RSA -keysize 2048 \
+#      -validity 10000 -alias saith_release
+#
+#    You'll be prompted for a store password, a key password, and your name/org info.
+#    Store ~/saith-release-key.jks somewhere safe and BACKED UP — e.g. a password
+#    manager or encrypted drive. Never commit it to git.
+#
+# 2. Copy this file to android/key.properties (that exact path — it's already in
+#    .gitignore) and fill in the real values below:
+
+storePassword=REPLACE_WITH_YOUR_STORE_PASSWORD
+keyPassword=REPLACE_WITH_YOUR_KEY_PASSWORD
+keyAlias=saith_release
+storeFile=/absolute/path/to/saith-release-key.jks
